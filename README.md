@@ -1,4 +1,4 @@
-Project on dockerized a web application and deploy on cloud. We have dockerized application of inventory and invoice management and deployed it on azure container instance.
+Project on containerizing a web application using docker and deploy on cloud. We have dockerized application of inventory and invoice management and deployed it on azure container instance.
 
 Frontend using HTML, CSS, Javascript. Backend using: NodeJS, ExpressJS, MongoDB. Used MongoDB Atlas and MongoDB Compass.
 
