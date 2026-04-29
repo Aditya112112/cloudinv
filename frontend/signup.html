@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up — SmartInv</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --surface: #111318;
+            --surface2: #181b22;
+            --border: #1e222d;
+            --border2: #252a38;
+            --accent: #4ade80;
+            --accent2: #22c55e;
+            --accent-dim: rgba(74, 222, 128, 0.08);
+            --accent-glow: rgba(74, 222, 128, 0.2);
+            --text: #f0f2f5;
+            --text2: #8892a4;
+            --text3: #4a5568;
+            --red: #f87171;
+            --red-dim: rgba(248, 113, 113, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(74,222,128,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(74,222,128,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; opacity: 0.5; }
+        .blob-1 { width:400px; height:400px; background:radial-gradient(circle, rgba(74,222,128,0.12), transparent 70%); bottom:-100px; right:-100px; }
+        .blob-2 { width:300px; height:300px; background:radial-gradient(circle, rgba(96,165,250,0.1), transparent 70%); top:-80px; left:-80px; }
+
+        .card {
+            position: relative; z-index: 1;
+            display: flex;
+            width: 900px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+            animation: cardIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* LEFT */
+        .left {
+            width: 38%;
+            background: linear-gradient(145deg, #0f1a14 0%, #0d1410 100%);
+            border-right: 1px solid var(--border);
+            padding: 44px 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .left::before {
+            content: '';
+            position: absolute;
+            bottom: -60px; right: -60px;
+            width: 250px; height: 250px;
+            background: radial-gradient(circle, rgba(74,222,128,0.1), transparent 70%);
+            pointer-events: none;
+        }
+
+        .left-brand { display: flex; align-items: center; gap: 10px; }
+        .brand-icon { width:34px; height:34px; background:var(--accent); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+        .brand-name { font-size:16px; font-weight:800; letter-spacing:-0.3px; }
+        .brand-name span { color: var(--accent); }
+
+        .left-body { flex:1; display:flex; flex-direction:column; justify-content:center; padding:28px 0; }
+
+        .left-headline { font-size:26px; font-weight:800; line-height:1.15; letter-spacing:-1px; margin-bottom:10px; }
+        .left-headline span { color: var(--accent); }
+
+        .left-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--text1); line-height:1.7; margin-bottom:24px; }
+
+        .steps { display:flex; flex-direction:column; }
+        .step { display:flex; align-items:flex-start; gap:12px; padding-bottom:18px; position:relative; }
+        .step:not(:last-child)::after { content:''; position:absolute; left:10px; top:24px; width:1px; height:calc(100% - 24px); background:var(--border2); }
+        .step-num { width:20px; height:20px; background:var(--accent); color:#0a0c10; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:800; flex-shrink:0; margin-top:2px; }
+        .step-label { font-weight:700; color:var(--text); font-size:12px; }
+        .step-text { font-size:11px; color:var(--text2); line-height:1.4; margin-top:1px; }
+
+        .left-footer { font-family:'DM Mono',monospace; font-size:10px; color:var(--text1); letter-spacing:0.5px; }
+
+        /* RIGHT */
+        .right {
+            flex: 1;
+            padding: 36px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .form-tag { font-family:'DM Mono',monospace; font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+        .form-title { font-size:24px; font-weight:800; letter-spacing:-0.8px; margin-bottom:4px; }
+        .form-sub { font-size:12px; color:var(--text2); margin-bottom:22px; font-family:'DM Mono',monospace; }
+
+        /* Section divider inside form */
+        .form-section {
+            font-family: 'DM Mono', monospace;
+            font-size: 9px;
+            color: var(--text1);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 16px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-section::before {
+            content: '';
+            display: inline-block;
+            width: 3px; height: 12px;
+            background: var(--accent);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .form-section:first-of-type { margin-top: 0; }
+
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .field { margin-bottom: 12px; }
+        .field label { display:block; font-family:'DM Mono',monospace; font-size:10px; color:var(--text1); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+
+        .field input, .field textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 9px;
+            color: var(--text);
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+            resize: none;
+        }
+
+        .field input:focus, .field textarea:focus {
+            border-color: var(--accent);
+            background: rgba(74,222,128,0.04);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .field input::placeholder, .field textarea::placeholder { color: var(--text2); }
+        .field input.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(248,113,113,0.15); }
+
+        /* Password strength */
+        .strength-bar { height: 3px; background: var(--border2); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+        .strength-fill { height: 100%; width: 0%; border-radius: 2px; transition: all 0.3s; }
+        .strength-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--text2); margin-top:3px; }
+
+        .submit-btn {
+            width: 100%; padding: 12px;
+            background: var(--accent); color: #0a0c10;
+            border: none; border-radius: 9px;
+            font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+            letter-spacing: 0.3px; margin-top: 6px;
+        }
+        .submit-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 24px var(--accent-glow); }
+        .submit-btn:active { transform: translateY(0); }
+
+        .divider { display:flex; align-items:center; gap:12px; margin:16px 0; }
+        .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+        .divider span { font-family:'DM Mono',monospace; font-size:11px; color:var(--text2); }
+
+        .secondary-btn {
+            width: 100%; padding: 10px;
+            background: transparent; color: var(--text1);
+            border: 1px solid var(--border2); border-radius: 9px;
+            font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .secondary-btn:hover { color: var(--text); background: var(--surface2); }
+
+        .error-msg {
+            display: none;
+            font-family: 'DM Mono', monospace; font-size: 11px;
+            color: var(--red); background: var(--red-dim);
+            border: 1px solid rgba(248,113,113,0.2);
+            border-radius: 7px; padding: 9px 13px; margin-bottom: 12px;
+        }
+        .error-msg.show { display: block; animation: shake 0.3s ease; }
+
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div class="card">
+    <!-- LEFT -->
+    <div class="left">
+        <div class="left-brand">
+            <div class="brand-icon">📦</div>
+            <div class="brand-name">Smart<span>Inv</span></div>
+        </div>
+
+        <div class="left-body">
+         <div class="left-headline">Cloud Ready Inventory <br><span>and Invoice Management System.</span></div>
+           <br><br>
+            <div class="left-headline">Start for<br><span>free today.</span></div>
+            <div class="left-sub"> No payment needed</div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div>
+                        <div class="step-label">Create your account</div>
+                        <div class="step-text">Shop details + login credentials</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div>
+                        <div class="step-label">Add your products</div>
+                        <div class="step-text">Build your inventory instantly</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div>
+                        <div class="step-label">Start billing & tracking</div>
+                        <div class="step-text">Invoices, GST & Khata ready</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="left-footer">v1.0 · SmartInv</div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+        <div class="form-tag"> New account</div>
+        <div class="form-title">Create Account</div>
+        <div class="form-sub">Fill in your shop & login details below</div>
+
+        <div class="error-msg" id="errorMsg">⚠ <span id="errorText">Please fill all fields</span></div>
+
+        <!-- SHOP DETAILS -->
+        <div class="form-section">Shop Details</div>
+
+        <div class="field">
+            <label>Shop Name</label>
+            <input type="text" id="shopName" placeholder="e.g. Sharma General Store">
+        </div>
+
+        <div class="row2">
+            <div class="field">
+                <label>Phone Number</label>
+                <input type="tel" id="shopPhone" placeholder="98XXXXXXXX" maxlength="10">
+            </div>
+            <div class="field">
+                <label>GST Number (optional)</label>
+                <input type="text" id="shopGst" placeholder="e.g. 07AAAAA0000A1Z5">
+            </div>
+        </div>
+
+        <div class="field">
+            <label>Shop Address</label>
+            <textarea id="shopAddress" rows="2" placeholder="e.g. Shop No. 12, Main Market, Delhi - 110001"></textarea>
+        </div>
+
+        <!-- LOGIN CREDENTIALS -->
+        <div class="form-section">Login Credentials</div>
+
+        <div class="field">
+            <label>Username</label>
+            <input type="text" id="newUser" placeholder="Choose a username">
+        </div>
+
+        <div class="row2">
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="newPass" placeholder="Create a password" oninput="checkStrength(this.value)">
+                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                <div class="strength-label" id="strengthLabel"></div>
+            </div>
+            <div class="field">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPass" placeholder="Re-enter password">
+            </div>
+        </div>
+
+        <button class="submit-btn" onclick="signup()">Create Account →</button>
+
+        <div class="divider"><span>already have an account?</span></div>
+
+        <button class="secondary-btn" onclick="goLogin()">← Back to Login</button>
+    </div>
+</div>
+
+<script>
+    function checkStrength(val) {
+        const fill  = document.getElementById("strengthFill");
+        const label = document.getElementById("strengthLabel");
+        let score = 0;
+        if (val.length >= 6)            score++;
+        if (val.length >= 10)           score++;
+        if (/[A-Z]/.test(val))          score++;
+        if (/[0-9]/.test(val))          score++;
+        if (/[^A-Za-z0-9]/.test(val))  score++;
+
+        const pct = (score / 5) * 100;
+        fill.style.width = pct + "%";
+        if (score <= 1) { fill.style.background = "#f87171"; label.textContent = "Weak"; label.style.color = "#f87171"; }
+        else if (score <= 3) { fill.style.background = "#fbbf24"; label.textContent = "Medium"; label.style.color = "#fbbf24"; }
+        else { fill.style.background = "#4ade80"; label.textContent = "Strong"; label.style.color = "#4ade80"; }
+    }
+
+    function showError(msg) {
+        document.getElementById("errorText").textContent = msg;
+        const err = document.getElementById("errorMsg");
+        err.classList.remove("show");
+        void err.offsetWidth;
+        err.classList.add("show");
+    }
+
+    async function signup() {
+        const shopName    = document.getElementById("shopName").value.trim();
+        const shopPhone   = document.getElementById("shopPhone").value.trim();
+        const shopAddress = document.getElementById("shopAddress").value.trim();
+        const shopGst     = document.getElementById("shopGst").value.trim();
+        const user        = document.getElementById("newUser").value.trim();
+        const pass        = document.getElementById("newPass").value;
+        const confirm     = document.getElementById("confirmPass").value;
+
+        if (!shopName)    { showError("Shop name is required");         return; }
+        if (!shopPhone)   { showError("Phone number is required");      return; }
+        if (!/^\d{10}$/.test(shopPhone)) { showError("Enter a valid 10-digit phone number"); return; }
+        if (!shopAddress) { showError("Shop address is required");      return; }
+        if (!user)        { showError("Username is required");          return; }
+        if (!pass)        { showError("Password is required");          return; }
+        if (pass.length < 4) { showError("Password must be at least 4 characters"); return; }
+        if (pass !== confirm) { showError("Passwords do not match");    return; }
+
+        try {
+            const res = await fetch('/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass, shopName, shopPhone, shopAddress, shopGst })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                localStorage.setItem("loggedIn",    "true");
+                localStorage.setItem("currentUser", user);
+                localStorage.setItem("shopName",    shopName);
+                localStorage.setItem("shopPhone",   shopPhone);
+                localStorage.setItem("shopAddress", shopAddress);
+                localStorage.setItem("shopGst",     shopGst);
+                window.location.href = "dashboard.html";
+            } else {
+                showError(data.message || "Signup failed. Try again.");
+            }
+        } catch (e) {
+            showError("Server error. Try again.");
+        }
+    }
+
+    document.addEventListener("keydown", e => {
+        if (e.key === "Enter") signup();
+    });
+
+    function goLogin() { window.location.href = "login.html"; }
+</script>
+</body>
+</html>

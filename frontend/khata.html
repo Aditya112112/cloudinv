@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Udhar / Khata — SmartInv</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:#0a0c10; --surface:#111318; --surface2:#181b22;
+            --border:#1e222d; --border2:#252a38;
+            --accent:#4ade80; --accent2:#22c55e;
+            --accent-dim:rgba(74,222,128,0.08); --accent-glow:rgba(74,222,128,0.2);
+            --text:#f0f2f5; --text2:#8892a4; --text3:#4a5568;
+            --red:#f87171; --red-dim:rgba(248,113,113,0.08);
+            --blue:#60a5fa; --blue-dim:rgba(96,165,250,0.08);
+            --yellow:#fbbf24; --yellow-dim:rgba(251,191,36,0.08);
+            --purple:#a78bfa; --purple-dim:rgba(167,139,250,0.08);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Syne',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+        body::before {
+            content:''; position:fixed; inset:0;
+            background-image:linear-gradient(rgba(74,222,128,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(74,222,128,0.025) 1px,transparent 1px);
+            background-size:40px 40px; pointer-events:none; z-index:0;
+        }
+        .layout { display:flex; min-height:100vh; position:relative; z-index:1; }
+
+        /* SIDEBAR */
+        .sidebar { width:220px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:24px 0; position:sticky; top:0; height:100vh; }
+        .sidebar-brand { display:flex; align-items:center; gap:10px; padding:0 20px 28px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+        .brand-icon { width:34px; height:34px; background:var(--accent); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+        .brand-name { font-size:16px; font-weight:800; letter-spacing:-0.3px; }
+        .brand-name span { color:var(--accent); }
+        .nav-section { padding:0 12px; margin-bottom:4px; }
+        .nav-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--text2); text-transform:uppercase; letter-spacing:1.5px; padding:0 8px; margin:12px 0 6px; }
+        .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text2); transition:all .15s; text-decoration:none; margin-bottom:2px; border:1px solid transparent; }
+        .nav-item:hover { background:var(--surface2); color:var(--text2); }
+        .nav-item.active { background:var(--accent-dim); color:var(--accent); border-color:rgba(74,222,128,0.15); }
+        .nav-icon { font-size:15px; width:20px; text-align:center; }
+        .sidebar-footer { margin-top:auto; padding:16px 20px 0; border-top:1px solid var(--border); }
+        .user-chip { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface2); border-radius:10px; border:1px solid var(--border); }
+        .user-avatar { width:28px; height:28px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#0a0c10; flex-shrink:0; }
+        .user-name { font-size:12px; font-weight:700; }
+        .user-role { font-family:'DM Mono',monospace; font-size:9px; color:var(--text2); }
+
+        /* MAIN */
+        .main { flex:1; padding:32px; overflow-x:hidden; }
+        .page-title { font-size:28px; font-weight:800; letter-spacing:-1px; margin-bottom:4px; }
+        .page-title span { color:var(--accent); }
+        .page-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--text1); margin-bottom:28px; }
+
+        /* STATS */
+        .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+        .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; animation:fadeUp .4s ease both; }
+        .stat-label { font-family:'DM Mono',monospace; font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+        .stat-value { font-size:26px; font-weight:800; letter-spacing:-1px; }
+        .stat-value.red { color:var(--red); }
+        .stat-value.green { color:var(--accent); }
+        .stat-value.yellow { color:var(--yellow); }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+        /* LAYOUT */
+        .khata-layout { display:grid; grid-template-columns:340px 1fr; gap:20px; align-items:start; }
+
+        /* CARD */
+        .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px; animation:fadeUp .4s .1s ease both; }
+        .card-title { font-size:13px; font-weight:700; color:var(--text1); text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:8px; margin-bottom:18px; }
+        .card-title::before { content:''; display:inline-block; width:3px; height:14px; background:var(--accent); border-radius:2px; }
+        .card-title.red::before { background:var(--red); }
+        .card-title.blue::before { background:var(--blue); }
+
+        /* FORM */
+        .field { margin-bottom:14px; }
+        .field label { display:block; font-family:'DM Mono',monospace; font-size:10px; color:var(--text1); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+        .field input, .field select, .field textarea {
+            width:100%; padding:10px 14px;
+            background:var(--surface2); border:1px solid var(--border2);
+            border-radius:8px; color:var(--text);
+            font-family:'DM Mono',monospace; font-size:13px;
+            outline:none; transition:all .2s; resize:none;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); background:rgba(74,222,128,0.04); box-shadow:0 0 0 3px var(--accent-glow); }
+        .field input::placeholder, .field textarea::placeholder { color:var(--text2); }
+        .field select option { background:#181b22; }
+
+        .btn-row { display:flex; gap:8px; margin-top:4px; }
+        .primary-btn { flex:1; padding:10px; background:var(--accent); color:#0a0c10; border:none; border-radius:8px; font-family:'Syne',sans-serif; font-size:13px; font-weight:800; cursor:pointer; transition:all .2s; }
+        .primary-btn:hover { background:var(--accent2); transform:translateY(-1px); box-shadow:0 4px 20px var(--accent-glow); }
+        .secondary-btn { padding:10px 16px; background:transparent; border:1px solid var(--border2); border-radius:8px; color:var(--text2); font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; }
+        .secondary-btn:hover { border-color:var(--border2); background:var(--surface2); }
+
+        /* CUSTOMER LIST */
+        .cust-list { display:flex; flex-direction:column; gap:6px; }
+        .cust-item {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:12px 14px;
+            background:var(--surface2);
+            border:1px solid var(--border);
+            border-radius:10px;
+            cursor:pointer;
+            transition:all .2s;
+        }
+        .cust-item:hover { border-color:var(--border2); background:#1d2029; }
+        .cust-item.selected { border-color:var(--accent); background:var(--accent-dim); }
+        .cust-name-big { font-size:13px; font-weight:700; }
+        .cust-meta { font-family:'DM Mono',monospace; font-size:10px; color:var(--text2); margin-top:2px; }
+        .cust-balance { font-family:'DM Mono',monospace; font-size:13px; font-weight:700; }
+        .cust-balance.owe { color:var(--red); }
+        .cust-balance.clear { color:var(--accent); }
+
+        /* LEDGER */
+        .ledger-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .cust-big-name { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
+        .balance-chip {
+            padding:6px 16px; border-radius:20px;
+            font-family:'DM Mono',monospace; font-size:13px; font-weight:700;
+        }
+        .balance-chip.owe { background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.2); }
+        .balance-chip.clear { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(74,222,128,0.2); }
+
+        /* LEDGER TABLE */
+        .ledger-table { width:100%; border-collapse:collapse; }
+        .ledger-table th { font-family:'DM Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); padding:8px 12px; text-align:left; background:var(--surface2); border-bottom:1px solid var(--border); }
+        .ledger-table td { padding:11px 12px; font-size:13px; border-bottom:1px solid var(--border); }
+        .ledger-table tr:last-child td { border-bottom:none; }
+        .ledger-table tbody tr:hover { background:rgba(255,255,255,0.015); }
+        .type-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:10px; font-family:'DM Mono',monospace; }
+        .type-badge.debit { background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.2); }
+        .type-badge.credit { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(74,222,128,0.2); }
+        .td-mono { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); }
+        .td-red { font-family:'DM Mono',monospace; font-size:12px; color:var(--red); font-weight:600; }
+        .td-green { font-family:'DM Mono',monospace; font-size:12px; color:var(--accent); font-weight:600; }
+
+        /* ADD ENTRY */
+        .add-entry-form { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
+        .add-entry-row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; }
+
+        .add-entry-btn { padding:10px 16px; background:var(--purple-dim); border:1px solid rgba(167,139,250,0.2); border-radius:8px; color:var(--purple); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; white-space:nowrap; }
+        .add-entry-btn:hover { background:rgba(167,139,250,0.15); }
+
+        .settle-btn { padding:8px 16px; background:var(--accent-dim); border:1px solid rgba(74,222,128,0.2); border-radius:8px; color:var(--accent); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; }
+        .settle-btn:hover { background:rgba(74,222,128,0.15); }
+
+        .delete-cust-btn { padding:8px 16px; background:var(--red-dim); border:1px solid rgba(248,113,113,0.2); border-radius:8px; color:var(--red); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; }
+        .delete-cust-btn:hover { background:rgba(248,113,113,0.15); }
+
+        .empty-state { text-align:center; padding:48px 20px; }
+        .empty-icon { font-size:36px; opacity:.3; margin-bottom:10px; }
+        .empty-text { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); }
+
+        /* TOAST */
+        .toast { position:fixed; bottom:28px; right:28px; padding:12px 20px; background:var(--surface); border:1px solid var(--accent); border-radius:10px; font-size:13px; font-weight:600; color:var(--accent); box-shadow:0 8px 32px rgba(0,0,0,0.4); transform:translateY(80px); opacity:0; transition:all .3s cubic-bezier(0.34,1.56,0.64,1); z-index:1000; font-family:'DM Mono',monospace; }
+        .toast.show { transform:translateY(0); opacity:1; }
+
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+    </style>
+</head>
+<body>
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">📦</div>
+            <div class="brand-name">Smart<span>Inv</span></div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">Main</div>
+            <a class="nav-item" href="dashboard.html"><span class="nav-icon">⬛</span> Dashboard</a>
+            <a class="nav-item" href="inventory.html"><span class="nav-icon">📦</span> Inventory</a>
+            <a class="nav-item" href="billing.html"><span class="nav-icon">🧾</span> Invoice</a>
+            <a class="nav-item active" href="khata.html"><span class="nav-icon">💳</span> Udhar / Khata</a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">Account</div>
+            <a class="nav-item" href="#" onclick="logout()"><span class="nav-icon">🚪</span> Logout</a>
+        </div>
+        <div class="sidebar-footer">
+            <div class="user-chip">
+                <div class="user-avatar" id="avatarInitial">A</div>
+                <div><div class="user-name" id="sidebarUser">Admin</div><div class="user-role"></div></div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="page-title">Udhar / <span>Khata</span></div>
+        <div class="page-sub"> Track credit, payments & customer ledgers</div>
+
+        <!-- STATS -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Customers</div>
+                <div class="stat-value yellow" id="stat-custs">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Outstanding</div>
+                <div class="stat-value red" id="stat-total-owe">₹0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cleared Accounts</div>
+                <div class="stat-value green" id="stat-cleared">0</div>
+            </div>
+        </div>
+
+        <div class="khata-layout">
+
+            <!-- LEFT: ADD CUSTOMER + LIST -->
+            <div>
+                <!-- Add Customer -->
+                <div class="card" style="margin-bottom:16px;animation-delay:0s;">
+                    <div class="card-title">Add Customer</div>
+                    <div class="field"><label>Customer Name</label><input id="newCustName" placeholder="e.g. Suresh Sharma"></div>
+                    <div class="field"><label>Phone No.</label><input id="newCustPhone" placeholder="98XXXXXXXX"></div>
+                    <div class="field"><label>Opening Balance (₹ owed)</label><input type="number" id="newCustBalance" placeholder="0" min="0"></div>
+                    <div class="btn-row">
+                        <button class="primary-btn" onclick="addCustomer()">+ Add Customer</button>
+                    </div>
+                </div>
+
+                <!-- Customer List -->
+                <div class="card" style="animation-delay:.05s;">
+                    <div class="card-title red">Customers (<span id="custCount">0</span>)</div>
+                    <div class="cust-list" id="custList">
+                        <div class="empty-state">
+                            <div class="empty-icon">👤</div>
+                            <div class="empty-text">No customers yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: LEDGER -->
+            <div class="card" style="animation-delay:.15s; min-height:400px;" id="ledgerCard">
+                <div class="empty-state">
+                    <div class="empty-icon">📒</div>
+                    <div class="empty-text">Select a customer to view their ledger</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    let user = "Admin";
+    let khata = [];
+    let selectedCust = null;
+
+    async function initApp() {
+        try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            if (!res.ok) { window.location.href = "login.html"; return; }
+            const data = await res.json();
+            user = data.username || data.name || "Admin";
+        } catch(e) { window.location.href = "login.html"; return; }
+
+        document.getElementById("sidebarUser").textContent   = user;
+        document.getElementById("avatarInitial").textContent = user[0].toUpperCase();
+
+        khata = await fetch('/api/khata', { credentials: 'include' }).then(r => r.json()) || [];
+        renderCustomers();
+        updateStats();
+    }
+
+    initApp();
+
+    async function saveKhata() {
+        // Data is saved per-operation via individual API calls
+    }
+
+    async function addCustomer() {
+        const name = document.getElementById("newCustName").value.trim();
+        const phone = document.getElementById("newCustPhone").value.trim();
+        const balance = parseFloat(document.getElementById("newCustBalance").value) || 0;
+        if (!name) { showToast("Enter customer name", true); return; }
+        if (khata.find(c => c.name.toLowerCase() === name.toLowerCase())) { showToast("Customer already exists", true); return; }
+
+        const newCust = {
+            name, phone,
+            entries: balance > 0 ? [{ type:"debit", amount:balance, note:"Opening balance", date:today() }] : []
+        };
+
+        const res = await fetch('/api/khata', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newCust)
+        });
+        const saved = await res.json();
+        khata.push(saved);
+
+        document.getElementById("newCustName").value = "";
+        document.getElementById("newCustPhone").value = "";
+        document.getElementById("newCustBalance").value = "";
+        renderCustomers();
+        updateStats();
+        showToast("Customer added");
+    }
+
+    function getBalance(cust) {
+        return cust.entries.reduce((sum, e) => sum + (e.type === "debit" ? e.amount : -e.amount), 0);
+    }
+
+    function renderCustomers() {
+        const list = document.getElementById("custList");
+        document.getElementById("custCount").textContent = khata.length;
+        if (!khata.length) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">No customers yet</div></div>';
+            return;
+        }
+        list.innerHTML = khata.map(c => {
+            const bal = getBalance(c);
+            const balClass = bal <= 0 ? "clear" : "owe";
+            const balText = bal <= 0 ? "✓ Clear" : "₹" + bal.toFixed(2);
+            const cId = c._id || c.id;
+            const isSelected = selectedCust && (selectedCust._id || selectedCust.id) === cId;
+            return `
+                <div class="cust-item ${isSelected ? 'selected' : ''}" onclick="selectCustomer('${cId}')">
+                    <div>
+                        <div class="cust-name-big">${c.name}</div>
+                        <div class="cust-meta">${c.phone || "No phone"} · ${c.entries.length} entries</div>
+                    </div>
+                    <div class="cust-balance ${balClass}">${balText}</div>
+                </div>`;
+        }).join('');
+    }
+
+    function selectCustomer(id) {
+        selectedCust = khata.find(c => (c._id || c.id) === id);
+        renderCustomers();
+        renderLedger();
+    }
+
+    function renderLedger() {
+        if (!selectedCust) return;
+        const card = document.getElementById("ledgerCard");
+        const bal = getBalance(selectedCust);
+        const balClass = bal <= 0 ? "clear" : "owe";
+        const balText = bal <= 0 ? "✓ All Clear" : "₹" + bal.toFixed(2) + " owed";
+
+        const rows = selectedCust.entries.length
+            ? [...selectedCust.entries].reverse().map((e, i) => `
+                <tr>
+                    <td class="td-mono">${e.date}</td>
+                    <td><span class="type-badge ${e.type}">${e.type === 'debit' ? '↑ Udhar' : '↓ Payment'}</span></td>
+                    <td>${e.note || "—"}</td>
+                    <td class="${e.type === 'debit' ? 'td-red' : 'td-green'}">
+                        ${e.type === 'debit' ? '+' : '-'}₹${parseFloat(e.amount).toFixed(2)}
+                    </td>
+                </tr>`).join('')
+            : `<tr><td colspan="4" style="text-align:center;padding:24px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">No entries yet</td></tr>`;
+
+        card.innerHTML = `
+            <div class="ledger-header">
+                <div>
+                    <div class="cust-big-name">${selectedCust.name}</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);margin-top:3px;">${selectedCust.phone || "No phone"}</div>
+                </div>
+                <span class="balance-chip ${balClass}">${balText}</span>
+            </div>
+
+            <div style="overflow-x:auto;margin-bottom:0;">
+                <table class="ledger-table">
+                    <thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Amount</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+
+            <div class="add-entry-form">
+                <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Add Entry</div>
+                <div class="add-entry-row">
+                    <div class="field" style="margin:0">
+                        <select id="entryType">
+                            <option value="debit">↑ Udhar (gave credit)</option>
+                            <option value="credit">↓ Payment (received)</option>
+                        </select>
+                    </div>
+                    <div class="field" style="margin:0">
+                        <input type="number" id="entryAmount" placeholder="Amount ₹" min="0">
+                    </div>
+                    <div class="field" style="margin:0">
+                        <input type="text" id="entryNote" placeholder="Note (optional)">
+                    </div>
+                    <button class="add-entry-btn" onclick="addEntry()">+ Add</button>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="settle-btn" onclick="settleAll()">✓ Mark All Settled</button>
+                    <button class="delete-cust-btn" onclick="deleteCustomer()">✕ Delete Customer</button>
+                </div>
+            </div>`;
+    }
+
+    async function addEntry() {
+        const type = document.getElementById("entryType").value;
+        const amount = parseFloat(document.getElementById("entryAmount").value);
+        const note = document.getElementById("entryNote").value.trim();
+        if (!amount || amount <= 0) { showToast("Enter valid amount", true); return; }
+
+        const entry = { type, amount, note: note || (type === 'debit' ? 'Udhar given' : 'Payment received'), date: today() };
+        const custId = selectedCust._id || selectedCust.id;
+
+        await fetch(`/api/khata/${custId}/entry`, {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
+        });
+
+        const idx = khata.findIndex(c => (c._id || c.id) === custId);
+        khata[idx].entries.push(entry);
+        selectedCust = khata[idx];
+        renderLedger();
+        renderCustomers();
+        updateStats();
+        document.getElementById("entryAmount").value = "";
+        document.getElementById("entryNote").value = "";
+        showToast(type === 'debit' ? "Udhar entry added" : "Payment recorded");
+    }
+
+    async function settleAll() {
+        const custId = selectedCust._id || selectedCust.id;
+        const idx = khata.findIndex(c => (c._id || c.id) === custId);
+        const bal = getBalance(khata[idx]);
+        if (bal <= 0) { showToast("Already settled", true); return; }
+
+        const entry = { type:'credit', amount:bal, note:'Full settlement', date:today() };
+        await fetch(`/api/khata/${custId}/entry`, {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
+        });
+
+        khata[idx].entries.push(entry);
+        selectedCust = khata[idx];
+        renderLedger();
+        renderCustomers();
+        updateStats();
+        showToast("Account settled ✓");
+    }
+
+    async function deleteCustomer() {
+        if (!confirm(`Delete ${selectedCust.name}? This cannot be undone.`)) return;
+        const custId = selectedCust._id || selectedCust.id;
+        await fetch(`/api/khata/${custId}`, { method: 'DELETE', credentials: 'include' });
+        khata = khata.filter(c => (c._id || c.id) !== custId);
+        selectedCust = null;
+        renderCustomers();
+        updateStats();
+        document.getElementById("ledgerCard").innerHTML = '<div class="empty-state"><div class="empty-icon">📒</div><div class="empty-text">Select a customer to view their ledger</div></div>';
+        showToast("Customer deleted");
+    }
+
+    function updateStats() {
+        const totalOwe = khata.reduce((s, c) => s + Math.max(0, getBalance(c)), 0);
+        const cleared = khata.filter(c => getBalance(c) <= 0).length;
+        document.getElementById("stat-custs").textContent = khata.length;
+        document.getElementById("stat-total-owe").textContent = "₹" + totalOwe.toFixed(2);
+        document.getElementById("stat-cleared").textContent = cleared;
+    }
+
+    function today() {
+        return new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+    }
+
+    function showToast(msg, isError = false) {
+        const t = document.getElementById("toast");
+        t.textContent = isError ? "⚠ " + msg : "✓ " + msg;
+        t.style.borderColor = isError ? "var(--red)" : "var(--accent)";
+        t.style.color = isError ? "var(--red)" : "var(--accent)";
+        t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2800);
+    }
+
+    async function logout() {
+        try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch(e) {}
+        window.location.href = "login.html";
+    }
+
+    // init handled by initApp() above
+</script>
+</body>
+</html>

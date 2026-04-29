@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice — SmartInv</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:#0a0c10; --surface:#111318; --surface2:#181b22;
+            --border:#1e222d; --border2:#252a38;
+            --accent:#4ade80; --accent2:#22c55e;
+            --accent-dim:rgba(74,222,128,0.08); --accent-glow:rgba(74,222,128,0.2);
+            --text:#f0f2f5; --text2:#8892a4; --text3:#4a5568;
+            --red:#f87171; --red-dim:rgba(248,113,113,0.08);
+            --blue:#60a5fa; --blue-dim:rgba(96,165,250,0.08);
+            --yellow:#fbbf24; --yellow-dim:rgba(251,191,36,0.08);
+            --purple:#a78bfa; --purple-dim:rgba(167,139,250,0.08);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Syne',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+        body::before {
+            content:''; position:fixed; inset:0;
+            background-image:linear-gradient(rgba(74,222,128,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(74,222,128,0.025) 1px,transparent 1px);
+            background-size:40px 40px; pointer-events:none; z-index:0;
+        }
+        .layout { display:flex; min-height:100vh; position:relative; z-index:1; }
+
+        .sidebar { width:220px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:24px 0; position:sticky; top:0; height:100vh; }
+        .sidebar-brand { display:flex; align-items:center; gap:10px; padding:0 20px 28px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+        .brand-icon { width:34px; height:34px; background:var(--accent); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+        .brand-name { font-size:16px; font-weight:800; letter-spacing:-0.3px; }
+        .brand-name span { color:var(--accent); }
+        .nav-section { padding:0 12px; margin-bottom:4px; }
+        .nav-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--text2); text-transform:uppercase; letter-spacing:1.5px; padding:0 8px; margin:12px 0 6px; }
+        .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text2); transition:all .15s; text-decoration:none; margin-bottom:2px; border:1px solid transparent; }
+        .nav-item:hover { background:var(--surface2); color:var(--text2); }
+        .nav-item.active { background:var(--accent-dim); color:var(--accent); border-color:rgba(74,222,128,0.15); }
+        .nav-icon { font-size:15px; width:20px; text-align:center; }
+        .sidebar-footer { margin-top:auto; padding:16px 20px 0; border-top:1px solid var(--border); }
+        .user-chip { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface2); border-radius:10px; border:1px solid var(--border); }
+        .user-avatar { width:28px; height:28px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#0a0c10; flex-shrink:0; }
+        .user-name { font-size:12px; font-weight:700; }
+        .user-role { font-family:'DM Mono',monospace; font-size:9px; color:var(--text2); }
+
+        .main { flex:1; padding:32px; overflow-x:hidden; }
+        .page-title { font-size:28px; font-weight:800; letter-spacing:-1px; margin-bottom:4px; }
+        .page-title span { color:var(--accent); }
+        .page-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--text); margin-bottom:28px; }
+
+        .bill-layout { display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start; }
+
+        .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px; animation:fadeUp .4s ease both; }
+        .card-title { font-size:13px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:8px; margin-bottom:18px; }
+        .card-title::before { content:''; display:inline-block; width:3px; height:14px; background:var(--accent); border-radius:2px; }
+        .card-title.blue::before { background:var(--blue); }
+        .card-title.yellow::before { background:var(--yellow); }
+        .card-title.purple::before { background:var(--purple); }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+        .field { margin-bottom:14px; }
+        .field label { display:block; font-family:'DM Mono',monospace; font-size:10px; color:var(--text); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+        .field input, .field select { width:100%; padding:10px 14px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:'DM Mono',monospace; font-size:13px; outline:none; transition:all .2s; }
+        .field input:focus, .field select:focus { border-color:var(--accent); background:rgba(74,222,128,0.04); box-shadow:0 0 0 3px var(--accent-glow); }
+        .field input::placeholder { color:var(--text2); }
+        .field select option { background:#181b22; }
+        .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .row3 { display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; }
+
+        .udhar-chip { display:none; align-items:center; gap:10px; padding:12px 16px; background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.25); border-radius:10px; margin-top:-4px; margin-bottom:14px; }
+        .udhar-chip.show { display:flex; animation:chipIn .3s cubic-bezier(0.34,1.3,0.64,1) both; }
+        @keyframes chipIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .udhar-chip-icon { font-size:20px; flex-shrink:0; }
+        .udhar-chip-body { flex:1; }
+        .udhar-chip-title { font-size:13px; font-weight:700; color:var(--red); }
+        .udhar-chip-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--text2); margin-top:2px; }
+        .udhar-chip-amount { font-family:'DM Mono',monospace; font-size:18px; font-weight:800; color:var(--red); letter-spacing:-0.5px; }
+
+        .payment-btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+        .pay-btn { flex:1; min-width:80px; padding:10px 8px; background:var(--surface2); border:1px solid var(--border2); border-radius:9px; color:var(--text2); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; text-align:center; }
+        .pay-btn:hover { background:#1d2029; color:var(--text); }
+        .pay-btn.selected-cash  { background:rgba(74,222,128,0.12); border-color:var(--accent); color:var(--accent); }
+        .pay-btn.selected-upi   { background:rgba(96,165,250,0.12); border-color:var(--blue); color:var(--blue); }
+        .pay-btn.selected-card  { background:rgba(251,191,36,0.12); border-color:var(--yellow); color:var(--yellow); }
+        .pay-btn.selected-udhar { background:rgba(248,113,113,0.12); border-color:var(--red); color:var(--red); }
+        .pay-btn.selected-neft  { background:rgba(167,139,250,0.12); border-color:var(--purple); color:var(--purple); }
+
+        .udhar-pay-note { display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.2); border-radius:8px; margin-top:10px; font-family:'DM Mono',monospace; font-size:11px; color:var(--red); }
+        .udhar-pay-note.show { display:flex; }
+
+        .add-item-btn { padding:10px 18px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text2); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; width:100%; }
+        .add-item-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+
+        .items-table { width:100%; border-collapse:collapse; margin-top:6px; }
+        .items-table th { font-family:'DM Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); padding:8px 10px; text-align:left; background:var(--surface2); border-bottom:1px solid var(--border); }
+        .items-table td { padding:10px; font-size:13px; border-bottom:1px solid var(--border); vertical-align:middle; }
+        .items-table tr:last-child td { border-bottom:none; }
+        .items-table tbody tr:hover { background:rgba(255,255,255,0.015); }
+        .td-mono { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); }
+        .td-green { font-family:'DM Mono',monospace; font-size:12px; color:var(--accent); font-weight:600; }
+        .rm-btn { padding:4px 10px; background:var(--red-dim); color:var(--red); border:1px solid rgba(248,113,113,0.2); border-radius:6px; cursor:pointer; font-size:11px; font-family:'Syne',sans-serif; font-weight:700; transition:all .2s; }
+        .rm-btn:hover { background:rgba(248,113,113,0.18); }
+        .empty-items { text-align:center; padding:28px; font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); }
+
+        .summary-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
+        .summary-row:last-child { border-bottom:none; }
+        .summary-label { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); }
+        .summary-val { font-family:'DM Mono',monospace; font-size:13px; color:var(--text); font-weight:500; }
+        .summary-row.sub-gst .summary-label { font-size:11px; padding-left:12px; color:var(--text2); }
+        .summary-row.sub-gst .summary-val { font-size:11px; color:var(--text2); }
+        .summary-row.total .summary-label { font-size:14px; color:var(--text); font-weight:700; font-family:'Syne',sans-serif; }
+        .summary-row.total .summary-val { font-size:20px; color:var(--accent); font-weight:800; letter-spacing:-0.5px; }
+
+        .pay-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-family:'DM Mono',monospace; font-size:11px; font-weight:600; }
+        .pay-badge.cash  { background:rgba(74,222,128,0.1); color:var(--accent); border:1px solid rgba(74,222,128,0.2); }
+        .pay-badge.upi   { background:rgba(96,165,250,0.1); color:var(--blue); border:1px solid rgba(96,165,250,0.2); }
+        .pay-badge.card  { background:rgba(251,191,36,0.1); color:var(--yellow); border:1px solid rgba(251,191,36,0.2); }
+        .pay-badge.udhar { background:rgba(248,113,113,0.1); color:var(--red); border:1px solid rgba(248,113,113,0.2); }
+        .pay-badge.neft  { background:rgba(167,139,250,0.1); color:var(--purple); border:1px solid rgba(167,139,250,0.2); }
+
+        .generate-btn { width:100%; padding:13px; background:var(--accent); color:#0a0c10; border:none; border-radius:9px; font-family:'Syne',sans-serif; font-size:14px; font-weight:800; cursor:pointer; transition:all .2s; margin-top:18px; letter-spacing:0.3px; }
+        .generate-btn:hover { background:var(--accent2); transform:translateY(-1px); box-shadow:0 6px 24px var(--accent-glow); }
+        .generate-btn:active { transform:translateY(0); }
+        .generate-btn.udhar-mode { background:var(--red); }
+        .generate-btn.udhar-mode:hover { background:#e05555; box-shadow:0 6px 24px rgba(248,113,113,0.3); }
+
+        .history-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
+        .history-item:last-child { border-bottom:none; }
+        .inv-num { font-family:'DM Mono',monospace; font-size:12px; color:var(--blue); }
+        .inv-name { font-size:13px; font-weight:600; margin-top:2px; }
+        .inv-date { font-family:'DM Mono',monospace; font-size:10px; color:var(--text2); margin-top:2px; }
+        .inv-amount { font-family:'DM Mono',monospace; font-size:14px; color:var(--accent); font-weight:700; }
+        .print-btn { padding:4px 10px; background:var(--blue-dim); color:var(--blue); border:1px solid rgba(96,165,250,0.2); border-radius:6px; cursor:pointer; font-size:11px; font-family:'Syne',sans-serif; font-weight:700; margin-left:10px; transition:all .2s; }
+        .print-btn:hover { background:rgba(96,165,250,0.15); }
+
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:500; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+        .modal-overlay.show { opacity:1; pointer-events:all; }
+        .modal { background:var(--surface); border:1px solid rgba(248,113,113,0.3); border-radius:18px; padding:32px 28px; width:420px; box-shadow:0 40px 80px rgba(0,0,0,0.6); transform:translateY(20px) scale(0.97); transition:all .3s cubic-bezier(0.34,1.2,0.64,1); }
+        .modal-overlay.show .modal { transform:translateY(0) scale(1); }
+        .modal-icon { font-size:36px; margin-bottom:14px; }
+        .modal-title { font-size:20px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px; color:var(--red); }
+        .modal-sub { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); margin-bottom:20px; line-height:1.6; }
+        .modal-udhar-box { background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.2); border-radius:12px; padding:16px 18px; margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; }
+        .modal-cust-name { font-size:15px; font-weight:700; }
+        .modal-cust-phone { font-family:'DM Mono',monospace; font-size:11px; color:var(--text2); margin-top:3px; }
+        .modal-balance { font-family:'DM Mono',monospace; font-size:24px; font-weight:800; color:var(--red); letter-spacing:-1px; }
+        .modal-balance-label { font-family:'DM Mono',monospace; font-size:9px; color:var(--text2); text-align:right; margin-top:2px; text-transform:uppercase; letter-spacing:1px; }
+        .modal-btn-row { display:flex; gap:10px; }
+        .modal-cancel { flex:1; padding:11px; background:transparent; border:1px solid var(--border2); border-radius:9px; color:var(--text2); font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; }
+        .modal-cancel:hover { background:var(--surface2); color:var(--text); }
+        .modal-proceed { flex:1.5; padding:11px; background:var(--accent); border:none; border-radius:9px; color:#0a0c10; font-family:'Syne',sans-serif; font-size:13px; font-weight:800; cursor:pointer; transition:all .2s; }
+        .modal-proceed:hover { background:var(--accent2); transform:translateY(-1px); }
+
+        .toast { position:fixed; bottom:28px; right:28px; padding:12px 20px; background:var(--surface); border:1px solid var(--accent); border-radius:10px; font-size:13px; font-weight:600; color:var(--accent); box-shadow:0 8px 32px rgba(0,0,0,0.4); transform:translateY(80px); opacity:0; transition:all .3s cubic-bezier(0.34,1.56,0.64,1); z-index:1000; font-family:'DM Mono',monospace; }
+        .toast.show { transform:translateY(0); opacity:1; }
+
+        @media print {
+            @page { margin: 0; size: A4; }
+            body * { visibility:hidden; }
+            #printArea, #printArea * { visibility:visible; }
+            #printArea { position:fixed; left:0; top:0; width:100%; background:white; color:black; padding:30px; }
+            #printArea * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
+        }
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+    </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="udharModal">
+    <div class="modal">
+        <div class="modal-icon">⚠️</div>
+        <div class="modal-title">Udhar Pending!</div>
+        <div class="modal-sub" id="modalSub">This customer's udhar is still pending.</div>
+        <div class="modal-udhar-box">
+            <div>
+                <div class="modal-cust-name" id="modalCustName">—</div>
+                <div class="modal-cust-phone" id="modalCustPhone">—</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="modal-balance" id="modalBalance">₹0</div>
+                <div class="modal-balance-label">Pending Udhar</div>
+            </div>
+        </div>
+        <div class="modal-btn-row">
+            <button class="modal-cancel" onclick="closeModal()">No</button>
+            <button class="modal-proceed" onclick="proceedInvoice()">Yes, Generate Invoice →</button>
+        </div>
+    </div>
+</div>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">📦</div>
+            <div class="brand-name">Smart<span>Inv</span></div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">Main</div>
+            <a class="nav-item" href="dashboard.html"><span class="nav-icon">⬛</span> Dashboard</a>
+            <a class="nav-item" href="inventory.html"><span class="nav-icon">📦</span> Inventory</a>
+            <a class="nav-item active" href="billing.html"><span class="nav-icon">🧾</span> Invoice</a>
+            <a class="nav-item" href="khata.html"><span class="nav-icon">💳</span> Udhar / Khata</a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">Account</div>
+            <a class="nav-item" href="#" onclick="logout()"><span class="nav-icon">🚪</span> Logout</a>
+        </div>
+        <div class="sidebar-footer">
+            <div class="user-chip">
+                <div class="user-avatar" id="avatarInitial">A</div>
+                <div><div class="user-name" id="sidebarUser">Admin</div><div class="user-role"></div></div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="page-title">Invoice <span>Builder</span></div>
+        <div class="page-sub">GST-ready · CGST & SGST split · payment method · udhar sync</div>
+
+        <div class="bill-layout">
+            <div>
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-title">Customer Details</div>
+                    <div class="row2">
+                        <div class="field">
+                            <label>Customer Name</label>
+                            <input id="custName" placeholder="e.g. Ramesh Kumar" oninput="checkUdhar()">
+                        </div>
+                        <div class="field">
+                            <label>Phone No.</label>
+                            <input id="custPhone" placeholder="98XXXXXXXX" oninput="checkUdhar()">
+                        </div>
+                    </div>
+                    <div class="udhar-chip" id="udharChip">
+                        <div class="udhar-chip-icon">🔴</div>
+                        <div class="udhar-chip-body">
+                            <div class="udhar-chip-title">Udhar Pending!</div>
+                            <div class="udhar-chip-sub" id="chipSub">This customer's udhar is pending</div>
+                        </div>
+                        <div class="udhar-chip-amount" id="chipAmount">₹0</div>
+                    </div>
+                    <div class="field" style="margin-bottom:6px;">
+                        <label>Payment Method</label>
+                        <div class="payment-btns">
+                            <button class="pay-btn selected-cash" onclick="selectPayment('cash')"  id="pay-cash">💵 Cash</button>
+                            <button class="pay-btn"              onclick="selectPayment('upi')"   id="pay-upi">📱 UPI</button>
+                            <button class="pay-btn"              onclick="selectPayment('card')"  id="pay-card">💳 Card</button>
+                            <button class="pay-btn"              onclick="selectPayment('neft')"  id="pay-neft">🏦 NEFT</button>
+                            <button class="pay-btn"              onclick="selectPayment('udhar')" id="pay-udhar">📒 Udhar</button>
+                        </div>
+                    </div>
+                    <div class="udhar-pay-note" id="udharPayNote">
+                        📒 Udhar selected — amount will be auto-added to customer's Khata
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-title blue">Add Items</div>
+                    <div class="row3">
+                        <div class="field">
+                            <label>Select Product</label>
+                            <select id="productSelect"><option value="">-- Choose product --</option></select>
+                        </div>
+                        <div class="field">
+                            <label>Qty</label>
+                            <input type="number" id="itemQty" placeholder="1" min="1" value="1">
+                        </div>
+                        <div class="field">
+                            <label style="visibility:hidden;">Add</label>
+                            <button class="add-item-btn" onclick="addItem()">+ Add</button>
+                        </div>
+                    </div>
+                    <table class="items-table">
+                        <thead>
+                            <tr><th>Product</th><th>Price</th><th>Qty</th><th>Taxable</th><th>CGST</th><th>SGST</th><th>Total</th><th></th></tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            <tr><td colspan="8" class="empty-items">No items added yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <div class="card" style="margin-bottom:16px; animation-delay:.1s;">
+                    <div class="card-title yellow">Invoice Summary</div>
+                    <div class="summary-row"><span class="summary-label">Subtotal (Taxable)</span><span class="summary-val" id="subtotal">₹0.00</span></div>
+                    <div class="summary-row sub-gst"><span class="summary-label">↳ CGST</span><span class="summary-val" id="cgstAmt">₹0.00</span></div>
+                    <div class="summary-row sub-gst"><span class="summary-label">↳ SGST</span><span class="summary-val" id="sgstAmt">₹0.00</span></div>
+                    <div class="summary-row"><span class="summary-label">Total GST</span><span class="summary-val" id="gstAmt">₹0.00</span></div>
+                    <div class="summary-row">
+                        <span class="summary-label">Discount</span>
+                        <span class="summary-val">
+                            <input type="number" id="discount" placeholder="0" min="0"
+                                style="width:70px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;text-align:right;"
+                                oninput="calcTotal()"> ₹
+                        </span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Payment Method</span>
+                        <span class="summary-val" id="payMethodBadge"><span class="pay-badge cash">💵 Cash</span></span>
+                    </div>
+                    <div class="summary-row total"><span class="summary-label">Grand Total</span><span class="summary-val" id="grandTotal">₹0.00</span></div>
+                    <button class="generate-btn" id="generateBtn" onclick="generateInvoice()">Generate Invoice →</button>
+                </div>
+
+                <div class="card" style="animation-delay:.15s;">
+                    <div class="card-title">Invoice History</div>
+                    <div id="historyList">
+                        <div style="text-align:center;padding:20px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">No invoices yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="printArea" style="display:none;"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+    // ─── INIT ─────────────────────────────────────────────────────────────────
+    let user = "Admin";
+    let shopName = "My Shop", shopPhone = "", shopAddress = "", shopGst = "";
+    let products = [], invoices = [], khata = [];
+
+    async function initApp() {
+        // Auth check
+        try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            if (!res.ok) { window.location.href = "login.html"; return; }
+            const data = await res.json();
+            user = data.username || data.name || "Admin";
+        } catch(e) { window.location.href = "login.html"; return; }
+
+        document.getElementById("sidebarUser").textContent   = user;
+        document.getElementById("avatarInitial").textContent = user[0].toUpperCase();
+
+        // Load shop info + all data in parallel
+        const [shopRes, prodRes, invRes, khataRes] = await Promise.all([
+            fetch('/api/shop', { credentials: 'include' }).then(r => r.ok ? r.json() : {}),
+            fetch('/api/products', { credentials: 'include' }).then(r => r.json()),
+            fetch('/api/invoices', { credentials: 'include' }).then(r => r.json()),
+            fetch('/api/khata', { credentials: 'include' }).then(r => r.json())
+        ]);
+
+        shopName    = shopRes.shopName    || "My Shop";
+        shopPhone   = shopRes.shopPhone   || "";
+        shopAddress = shopRes.shopAddress || "";
+        shopGst     = shopRes.shopGst     || "";
+
+        products = prodRes || [];
+        invoices = invRes  || [];
+        khata    = khataRes || [];
+
+        loadProducts();
+        loadHistory();
+    }
+
+    initApp();
+    let cartItems = [];
+    let pendingInvoice = null;
+    let selectedPayment = "cash";
+
+    const payInfo = {
+        cash:  { icon:"💵", label:"Cash",      class:"cash"  },
+        upi:   { icon:"📱", label:"UPI",       class:"upi"   },
+        card:  { icon:"💳", label:"Card",      class:"card"  },
+        neft:  { icon:"🏦", label:"NEFT/Bank", class:"neft"  },
+        udhar: { icon:"📒", label:"Udhar",     class:"udhar" },
+    };
+
+    function selectPayment(method) {
+        selectedPayment = method;
+        ["cash","upi","card","neft","udhar"].forEach(m => {
+            const btn = document.getElementById("pay-" + m);
+            btn.className = "pay-btn" + (m === method ? " selected-" + m : "");
+        });
+        const p = payInfo[method];
+        document.getElementById("payMethodBadge").innerHTML = `<span class="pay-badge ${p.class}">${p.icon} ${p.label}</span>`;
+        document.getElementById("udharPayNote").classList.toggle("show", method === "udhar");
+        const btn = document.getElementById("generateBtn");
+        btn.className = "generate-btn" + (method === "udhar" ? " udhar-mode" : "");
+        btn.textContent = method === "udhar" ? "📒 Generate & Add to Khata →" : "Generate Invoice →";
+    }
+
+    function getBalance(cust) {
+        return cust.entries.reduce((sum, e) => sum + (e.type === "debit" ? e.amount : -e.amount), 0);
+    }
+
+    function findKhataCustomer(name, phone) {
+        if (!name || !phone) return null;
+        return khata.find(c =>
+            c.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+            c.phone && c.phone.trim() === phone.trim()
+        ) || null;
+    }
+
+    function checkUdhar() {
+        const name  = document.getElementById("custName").value;
+        const phone = document.getElementById("custPhone").value;
+        const chip  = document.getElementById("udharChip");
+        const cust  = findKhataCustomer(name, phone);
+        if (cust) {
+            const bal = getBalance(cust);
+            if (bal > 0) {
+                document.getElementById("chipAmount").textContent = "₹" + bal.toFixed(2);
+                document.getElementById("chipSub").textContent = `${cust.name} Udhar ₹${bal.toFixed(2)} is still pending`;
+                chip.classList.add("show"); return;
+            }
+        }
+        chip.classList.remove("show");
+    }
+
+    function showUdharModal(custName, custPhone, balance, invoiceData) {
+        pendingInvoice = invoiceData;
+        document.getElementById("modalCustName").textContent  = custName;
+        document.getElementById("modalCustPhone").textContent = custPhone || "Phone not given";
+        document.getElementById("modalBalance").textContent   = "₹" + balance.toFixed(2);
+        document.getElementById("modalSub").textContent       = `${custName} udhar of ₹${balance.toFixed(2)} is still pending. Do you want to proceed with the invoice?`;
+        document.getElementById("udharModal").classList.add("show");
+    }
+
+    function closeModal() { document.getElementById("udharModal").classList.remove("show"); pendingInvoice = null; }
+
+    function proceedInvoice() {
+        document.getElementById("udharModal").classList.remove("show");
+        if (pendingInvoice) finalizeInvoice(pendingInvoice);
+        pendingInvoice = null;
+    }
+
+    function loadProducts() {
+        const sel = document.getElementById("productSelect");
+        sel.innerHTML = '<option value="">-- Choose product --</option>';
+        products.forEach((p, i) => {
+            sel.innerHTML += `<option value="${i}">${p.name} (Stock: ${p.stock}) — ₹${p.price} | GST ${p.gst}%</option>`;
+        });
+    }
+
+    function addItem() {
+        const idx = document.getElementById("productSelect").value;
+        const qty = parseInt(document.getElementById("itemQty").value) || 1;
+        if (idx === "") { showToast("Select a product", true); return; }
+        const p = products[idx];
+        if (qty > parseInt(p.stock)) { showToast(`Only ${p.stock} units in stock`, true); return; }
+        const existing = cartItems.findIndex(c => c.name === p.name);
+        if (existing >= 0) cartItems[existing].qty += qty;
+        else cartItems.push({ name:p.name, price:parseFloat(p.price), gst:parseFloat(p.gst), qty, productIdx:parseInt(idx) });
+        document.getElementById("itemQty").value = 1;
+        renderCart(); calcTotal();
+    }
+
+    function removeItem(i) { cartItems.splice(i,1); renderCart(); calcTotal(); }
+
+    function renderCart() {
+        const tbody = document.getElementById("itemsBody");
+        if (!cartItems.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-items">No items added yet</td></tr>'; return; }
+        tbody.innerHTML = cartItems.map((c, i) => {
+            const taxable = c.price * c.qty;
+            const cgst = taxable * (c.gst / 2 / 100);
+            const total = taxable + cgst * 2;
+            const half = c.gst / 2;
+            return `<tr>
+                <td style="font-weight:600;font-size:13px;">${c.name}</td>
+                <td class="td-mono">₹${c.price.toFixed(2)}</td>
+                <td class="td-mono">${c.qty}</td>
+                <td class="td-mono">₹${taxable.toFixed(2)}</td>
+                <td class="td-mono">${half}%<br><span style="color:var(--text2);font-size:10px;">₹${cgst.toFixed(2)}</span></td>
+                <td class="td-mono">${half}%<br><span style="color:var(--text2);font-size:10px;">₹${cgst.toFixed(2)}</span></td>
+                <td class="td-green">₹${total.toFixed(2)}</td>
+                <td><button class="rm-btn" onclick="removeItem(${i})">✕</button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function calcTotal() {
+        let subtotal=0, cgstTotal=0;
+        cartItems.forEach(c => {
+            const taxable = c.price * c.qty;
+            subtotal  += taxable;
+            cgstTotal += taxable * (c.gst / 2 / 100);
+        });
+        const gstTotal = cgstTotal * 2;
+        const discount = parseFloat(document.getElementById("discount").value) || 0;
+        const grand    = subtotal + gstTotal - discount;
+        document.getElementById("subtotal").textContent   = "₹" + subtotal.toFixed(2);
+        document.getElementById("cgstAmt").textContent    = "₹" + cgstTotal.toFixed(2);
+        document.getElementById("sgstAmt").textContent    = "₹" + cgstTotal.toFixed(2);
+        document.getElementById("gstAmt").textContent     = "₹" + gstTotal.toFixed(2);
+        document.getElementById("grandTotal").textContent = "₹" + Math.max(0, grand).toFixed(2);
+    }
+
+    function generateInvoice() {
+        const custName  = document.getElementById("custName").value.trim() || "Walk-in Customer";
+        const custPhone = document.getElementById("custPhone").value.trim();
+        if (!cartItems.length) { showToast("Add at least one item", true); return; }
+        if (selectedPayment === "udhar" && (!custName || custName === "Walk-in Customer" || !custPhone)) {
+            showToast("Customer name and phone are required for udhar payments!", true); return;
+        }
+        const discount = parseFloat(document.getElementById("discount").value) || 0;
+        let subtotal=0, cgstTotal=0;
+        cartItems.forEach(c => {
+            const taxable = c.price * c.qty;
+            subtotal  += taxable;
+            cgstTotal += taxable * (c.gst / 2 / 100);
+        });
+        const gstTotal = cgstTotal * 2;
+        const grand = Math.max(0, subtotal + gstTotal - discount);
+
+        const invoiceData = {
+            id: invoices.length + 1,
+            customer: custName, phone: custPhone,
+            items: [...cartItems],
+            subtotal, cgstTotal, sgstTotal: cgstTotal, gstTotal, discount, grand,
+            paymentMethod: selectedPayment,
+            date: new Date().toLocaleDateString('en-IN'),
+            time: new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})
+        };
+
+        if (selectedPayment !== "udhar") {
+            const khastaCust = findKhataCustomer(custName, custPhone);
+            if (khastaCust) {
+                const bal = getBalance(khastaCust);
+                if (bal > 0) { showUdharModal(custName, custPhone, bal, invoiceData); return; }
+            }
+        }
+        finalizeInvoice(invoiceData);
+    }
+
+    async function saveUserData() {
+        // no-op: data is saved per-operation via API calls below
+    }
+
+    async function finalizeInvoice(inv) {
+        inv.items.forEach(c => {
+            products[c.productIdx].stock = parseInt(products[c.productIdx].stock) - c.qty;
+        });
+        invoices.push(inv);
+
+        // Save invoice + updated stock to backend
+        await fetch('/api/invoices', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(inv)
+        });
+        // Update stock for each product sold
+        for (const c of inv.items) {
+            await fetch(`/api/products/${products[c.productIdx]._id || products[c.productIdx].id}`, {
+                method: 'PUT', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stock: products[c.productIdx].stock })
+            });
+        }
+
+        if (inv.paymentMethod === "udhar") {
+            // Refresh khata from server
+            khata = await fetch('/api/khata', { credentials: 'include' }).then(r => r.json()) || [];
+            let custIdx = khata.findIndex(c =>
+                c.name.trim().toLowerCase() === inv.customer.trim().toLowerCase() &&
+                c.phone && c.phone.trim() === inv.phone.trim()
+            );
+            if (custIdx === -1) {
+                // New khata customer
+                await fetch('/api/khata', {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: inv.customer, phone: inv.phone,
+                        entries: [{ type:"debit", amount:inv.grand, note:`Invoice #${String(inv.id).padStart(4,"0")}`, date:inv.date }]
+                    })
+                });
+            } else {
+                // Existing khata customer — add entry
+                await fetch(`/api/khata/${khata[custIdx]._id || khata[custIdx].id}/entry`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type:"debit", amount:inv.grand, note:`Invoice #${String(inv.id).padStart(4,"0")}`, date:inv.date })
+                });
+            }
+            // Refresh khata local copy
+            khata = await fetch('/api/khata', { credentials: 'include' }).then(r => r.json()) || [];
+            showToast(`Invoice generated & ₹${inv.grand.toFixed(2)} Khata mein add ho gaya! 📒`);
+        } else {
+            showToast("Invoice #" + String(inv.id).padStart(4,"0") + " generated!");
+        }
+
+        printInvoice(inv);
+
+        cartItems = [];
+        document.getElementById("custName").value  = "";
+        document.getElementById("custPhone").value = "";
+        document.getElementById("discount").value  = "";
+        document.getElementById("udharChip").classList.remove("show");
+        selectPayment("cash");
+        renderCart(); calcTotal(); loadProducts(); loadHistory();
+    }
+
+    function printInvoice(inv) {
+        const p = payInfo[inv.paymentMethod] || payInfo["cash"];
+        const isUdhar = inv.paymentMethod === "udhar";
+
+        const printShopName    = shopName;
+        const printShopPhone   = shopPhone;
+        const printShopAddress = shopAddress;
+        const printShopGst     = shopGst;
+
+        const itemRows = inv.items.map(c => {
+            const taxable = c.price * c.qty;
+            const cgst = taxable * (c.gst / 2 / 100);
+            const total = taxable + cgst * 2;
+            const half = c.gst / 2;
+            return `
+            <tr>
+                <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;">${c.name}</td>
+                <td style="padding:8px 6px;text-align:right;border-bottom:1px solid #f0f0f0;">₹${c.price.toFixed(2)}</td>
+                <td style="padding:8px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">${c.qty}</td>
+                <td style="padding:8px 6px;text-align:right;border-bottom:1px solid #f0f0f0;">₹${taxable.toFixed(2)}</td>
+                <td style="padding:8px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">${c.gst}%</td>
+                <td style="padding:8px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">${half}%<br><span style="font-size:10px;color:#555;">₹${cgst.toFixed(2)}</span></td>
+                <td style="padding:8px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">${half}%<br><span style="font-size:10px;color:#555;">₹${cgst.toFixed(2)}</span></td>
+                <td style="padding:8px 6px;text-align:right;border-bottom:1px solid #f0f0f0;font-weight:700;">₹${total.toFixed(2)}</td>
+            </tr>`;
+        }).join('');
+
+        const html = `
+        <div style="max-width:750px;margin:0 auto;font-family:'Arial',sans-serif;color:#111;font-size:13px;">
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #111;margin-bottom:16px;">
+                <div>
+                    <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;margin-bottom:4px;">${printShopName}</div>
+                    ${printShopAddress ? `<div style="font-size:12px;color:#333;margin-bottom:2px;">Address: ${printShopAddress}</div>` : ""}
+                    ${printShopPhone   ? `<div style="font-size:12px;color:#333;margin-bottom:2px;">Phone: ${printShopPhone}</div>` : ""}
+                    ${printShopGst     ? `<div style="font-size:12px;color:#333;">GST No: ${printShopGst}</div>` : ""}
+                </div>
+
+                <div style="font-size:25px;text-align:center;line-height:1;">SmartInv</div>
+
+                <div style="text-align:right;">
+                    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">GST Tax Invoice</div>
+                    <div style="font-size:20px;font-weight:900;color:#111;">#${String(inv.id).padStart(4,"0")}</div>
+                    <div style="font-size:13px;font-weight:700;color:#111;margin-top:4px;">Date: ${inv.date} <br> Time: ${inv.time}</div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:stretch;margin-bottom:20px;gap:12px;">
+                <div style="background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px 16px;min-width:200px;">
+                    <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Bill To</div>
+                    <div style="font-weight:700;font-size:15px;color:#111;">Name: ${inv.customer}</div>
+                    ${inv.phone ? `<div style="color:#555;font-size:12px;margin-top:2px;">Phone: ${inv.phone}</div>` : "<div style='color:#888;font-size:12px;margin-top:2px;'>Walk-in Customer</div>"}
+                </div>
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                    <div style="font-size:25px;font-weight:900;color:#111;letter-spacing:-0.5px;">INVOICE</div>
+                </div>
+                <div style="background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px 16px;text-align:right;min-width:160px;">
+                    <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Payment</div>
+                    <div style="font-weight:700;font-size:14px;color:${isUdhar ? '#cc3333' : '#111'};">
+                        ${isUdhar ? 'No Payment Received' : `${p.label}`}
+                    </div>
+                    <div style="font-size:11px;margin-top:4px;color:${isUdhar ? '#cc3333' : '#22c55e'};">
+                        ${isUdhar ? 'Added to Khata' : '✓ Paid'}
+                    </div>
+                </div>
+            </div>
+
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;">
+                <thead>
+                    <tr style="background:#111 !important;color:#fff !important;">
+                        <th style="padding:10px 6px;text-align:left;color:#fff !important;">Item</th>
+                        <th style="padding:10px 6px;text-align:right;color:#fff !important;">Rate</th>
+                        <th style="padding:10px 6px;text-align:center;color:#fff !important;">Qty</th>
+                        <th style="padding:10px 6px;text-align:right;color:#fff !important;">Taxable</th>
+                        <th style="padding:10px 6px;text-align:center;color:#fff !important;">GST%</th>
+                        <th style="padding:10px 6px;text-align:center;color:#fff !important;">CGST</th>
+                        <th style="padding:10px 6px;text-align:center;color:#fff !important;">SGST</th>
+                        <th style="padding:10px 6px;text-align:right;color:#fff !important;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>${itemRows}</tbody>
+            </table>
+
+            <div style="border-top:2px solid #111;margin-bottom:12px;"></div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+                <div style="width:300px;border:1px solid #ddd;overflow:hidden;">
+                    <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #eee;">
+                        <span style="color:#555;">Subtotal (Taxable)</span><span style="color:#111;">₹${inv.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 14px 6px 24px;border-bottom:1px solid #eee;font-size:11px;color:#555;">
+                        <span>CGST</span><span>₹${inv.cgstTotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 14px 6px 24px;border-bottom:1px solid #eee;font-size:11px;color:#555;">
+                        <span>SGST</span><span>₹${inv.sgstTotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #eee;">
+                        <span style="color:#555;">Total GST</span><span style="color:#111;">₹${inv.gstTotal.toFixed(2)}</span>
+                    </div>
+                    ${inv.discount ? `
+                    <div style="display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #eee;color:#cc3333;">
+                        <span>Discount</span><span>- ₹${parseFloat(inv.discount).toFixed(2)}</span>
+                    </div>` : ""}
+                    <div style="display:flex;justify-content:space-between;padding:12px 14px;background:#111 !important;color:#fff !important;">
+                        <span style="font-weight:700;font-size:14px;color:#fff !important;">Grand Total</span>
+                        <span style="font-weight:900;font-size:18px;color:#fff !important;">₹${inv.grand.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center;padding-top:14px;border-top:1px solid #eee;">
+                <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Thank you for your business!</div>
+                <div style="font-size:10px;color:#555;">${printShopName}${printShopPhone ? ' · ' + printShopPhone : ''}${printShopAddress ? ' · ' + printShopAddress : ''}</div>
+                <div style="font-size:13px;font-weight:700;color:#111;margin-top:6px;">Computer Generated Invoice · SmartInv</div>
+            </div>
+
+        </div>`;
+
+        const printArea = document.getElementById("printArea");
+        printArea.innerHTML = html;
+        printArea.style.display = "block";
+        window.print();
+        printArea.style.display = "none";
+    }
+
+    function loadHistory() {
+        const list = document.getElementById("historyList");
+        if (!invoices.length) {
+            list.innerHTML = '<div style="text-align:center;padding:20px;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--text2);">No invoices yet</div>';
+            return;
+        }
+        list.innerHTML = [...invoices].reverse().slice(0,6).map(inv => {
+            const p = payInfo[inv.paymentMethod] || payInfo["cash"];
+            return `<div class="history-item">
+                <div>
+                    <div class="inv-num">#${String(inv.id).padStart(4,"0")}</div>
+                    <div class="inv-name">${inv.customer}</div>
+                    <div class="inv-date">${inv.date} · ${inv.time} · <span class="pay-badge ${p.class}" style="padding:1px 7px;font-size:10px;">${p.icon} ${p.label}</span></div>
+                </div>
+                <div style="display:flex;align-items:center;">
+                    <div class="inv-amount">₹${parseFloat(inv.grand).toFixed(2)}</div>
+                    <button class="print-btn" onclick="reprintInvoice(${inv.id})">Print</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function reprintInvoice(id) {
+        const inv = invoices.find(i => i.id === id);
+        if (inv) printInvoice(inv);
+    }
+
+    function showToast(msg, isError=false) {
+        const t = document.getElementById("toast");
+        t.textContent = isError ? "⚠ " + msg : "✓ " + msg;
+        t.style.borderColor = isError ? "var(--red)" : "var(--accent)";
+        t.style.color = isError ? "var(--red)" : "var(--accent)";
+        t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3500);
+    }
+
+    document.getElementById("udharModal").addEventListener("click", function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    async function logout() {
+        try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch(e) {}
+        window.location.href = "login.html";
+    }
+
+    // init handled by initApp() above
+</script>
+</body>
+</html>

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — SmartInv</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --surface: #111318;
+            --surface2: #181b22;
+            --border: #1e222d;
+            --border2: #252a38;
+            --accent: #4ade80;
+            --accent2: #22c55e;
+            --accent-dim: rgba(74,222,128,0.08);
+            --accent-glow: rgba(74,222,128,0.2);
+            --text: #f0f2f5;
+            --text2: #8892a4;
+            --text3: #4a5568;
+            --red: #f87171;
+            --red-dim: rgba(248,113,113,0.08);
+            --blue: #60a5fa;
+            --blue-dim: rgba(96,165,250,0.08);
+            --yellow: #fbbf24;
+            --yellow-dim: rgba(251,191,36,0.08);
+            --purple: #a78bfa;
+            --purple-dim: rgba(167,139,250,0.08);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content:'';
+            position:fixed; inset:0;
+            background-image:
+                linear-gradient(rgba(74,222,128,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(74,222,128,0.025) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events:none; z-index:0;
+        }
+
+        .layout { display:flex; min-height:100vh; position:relative; z-index:1; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 20px 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .brand-icon {
+            width: 34px; height: 34px;
+            background: var(--accent);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+
+        .brand-name { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+        .brand-name span { color: var(--accent); }
+
+        .nav-section { padding: 0 12px; margin-bottom: 4px; }
+
+        .nav-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 9px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 0 8px;
+            margin: 12px 0 6px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text2);
+            transition: all 0.15s;
+            text-decoration: none;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover { background: var(--surface2); color: var(--text2); }
+
+        .nav-item.active {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(74,222,128,0.15);
+        }
+
+        .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 20px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--surface2);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .user-avatar {
+            width: 28px; height: 28px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            color: #0a0c10;
+            flex-shrink: 0;
+        }
+
+        .user-name { font-size: 12px; font-weight: 700; }
+        .user-role { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text2); }
+
+        /* MAIN */
+        .main { flex: 1; padding: 32px; overflow-x: hidden; }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 28px;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .page-title { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .page-title span { color: var(--accent); }
+        .page-date {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--text1);
+            margin-top: 4px;
+        }
+
+        .topbar-right { display: flex; gap: 8px; align-items: center; }
+
+        .refresh-btn {
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            color: var(--text2);
+            font-family: 'Syne', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+        /* STAT CARDS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 20px;
+            transition: all 0.2s;
+            cursor: default;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.05s; }
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.15s; }
+        .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+        .stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .stat-icon {
+            width: 36px; height: 36px;
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+
+        .stat-icon.green { background: var(--accent-dim); }
+        .stat-icon.blue { background: var(--blue-dim); }
+        .stat-icon.yellow { background: var(--yellow-dim); }
+        .stat-icon.red { background: var(--red-dim); }
+
+        .stat-change {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            padding: 3px 7px;
+            border-radius: 20px;
+        }
+
+        .stat-change.up { background: var(--accent-dim); color: var(--accent); }
+        .stat-change.down { background: var(--red-dim); color: var(--red); }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* CHARTS ROW */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px 24px;
+            animation: fadeUp 0.4s 0.25s ease both;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content:'';
+            display: inline-block;
+            width: 3px; height: 14px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .card-title.blue-bar::before { background: var(--blue); }
+        .card-title.yellow-bar::before { background: var(--yellow); }
+        .card-title.purple-bar::before { background: var(--purple); }
+
+        .tab-row { display: flex; gap: 4px; }
+
+        .tab {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            color: var(--text2);
+        }
+
+        .tab.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(74,222,128,0.2); }
+        .tab:hover:not(.active) { color: var(--text2); background: var(--surface2); }
+
+        .chart-wrap { position: relative; height: 200px; }
+
+        /* BOTTOM ROW */
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .mini-table { width: 100%; border-collapse: collapse; }
+        .mini-table th {
+            font-family: 'DM Mono', monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text2);
+            padding: 8px 12px;
+            text-align: left;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mini-table td {
+            padding: 10px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mini-table tr:last-child td { border-bottom: none; }
+        .mini-table tbody tr:hover { background: rgba(255,255,255,0.015); }
+
+        .td-name { font-weight: 600; font-size: 13px; }
+        .td-mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+        .td-green { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); font-weight: 600; }
+
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .badge.low { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+        .badge.med { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+        .badge.ok { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(74,222,128,0.2); }
+
+        .activity-list { display: flex; flex-direction: column; gap: 0; }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+
+        .activity-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        .activity-dot.green { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+        .activity-dot.red { background: var(--red); }
+        .activity-dot.blue { background: var(--blue); }
+        .activity-dot.yellow { background: var(--yellow); }
+
+        .activity-text { font-size: 13px; line-height: 1.4; }
+        .activity-text strong { font-weight: 700; }
+        .activity-time {
+            margin-left: auto;
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--text2);
+            flex-shrink: 0;
+        }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(16px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">📦</div>
+            <div class="brand-name">Smart<span>Inv</span></div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Main</div>
+            <a class="nav-item active" href="dashboard.html"><span class="nav-icon">⬛</span> Dashboard</a>
+            <a class="nav-item" href="inventory.html"><span class="nav-icon">📦</span> Inventory</a>
+            <a class="nav-item" href="billing.html"><span class="nav-icon">🧾</span> Invoice</a>
+            <a class="nav-item" href="khata.html"><span class="nav-icon">💳</span> Udhar / Khata</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Account</div>
+            <a class="nav-item" href="#" onclick="logout()"><span class="nav-icon">🚪</span> Logout</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-chip">
+                <div class="user-avatar" id="avatarInitial">A</div>
+                <div>
+                    <div class="user-name" id="sidebarUser">Admin</div>
+                    <div class="user-role"></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+            <div>
+                <div class="page-title">Hello, <span id="greeting">Admin</span> 👋</div>
+                <div class="page-date" id="dateDisplay"></div>
+            </div>
+            <div class="topbar-right">
+                <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon green">📦</div>
+                    <span class="stat-change up" id="chg-products">+0</span>
+                </div>
+                <div class="stat-value" id="val-products">0</div>
+                <div class="stat-label">Total Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon blue">📊</div>
+                    <span class="stat-change up" id="chg-stock">+0</span>
+                </div>
+                <div class="stat-value" id="val-stock">0</div>
+                <div class="stat-label">Total Stock Units</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon yellow">🧾</div>
+                    <span class="stat-change up" id="chg-invoices">0</span>
+                </div>
+                <div class="stat-value" id="val-invoices">0</div>
+                <div class="stat-label">Invoices Generated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon red">⚠️</div>
+                    <span class="stat-change down" id="chg-low">0</span>
+                </div>
+                <div class="stat-value" id="val-low">0</div>
+                <div class="stat-label">Low Stock Alerts</div>
+            </div>
+        </div>
+
+        <div class="charts-row">
+            <div class="chart-card">
+                <div class="card-header">
+                    <div class="card-title">Stock Levels</div>
+                    <div class="tab-row">
+                        <div class="tab active">All</div>
+                        <div class="tab">Top 5</div>
+                    </div>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="card-header">
+                    <div class="card-title blue-bar">Stock Health</div>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="healthChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-row">
+
+            <div class="chart-card" style="padding:0; overflow:hidden;">
+                <div class="card-header" style="padding:18px 20px 0;">
+                    <div class="card-title yellow-bar">Low Stock Alert</div>
+                    <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);" id="lowCount">0 items</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="mini-table" id="lowStockTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lowStockBody">
+                            <tr><td colspan="4" style="text-align:center;padding:28px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">✓ All products well stocked</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="card-header">
+                    <div class="card-title purple-bar">Recent Activity</div>
+                </div>
+                <div class="activity-list" id="activityFeed">
+                    <div class="activity-item">
+                        <div class="activity-dot blue"></div>
+                        <div class="activity-text">No activity yet — add products to get started</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+</div>
+
+<script>
+    // ─── AUTH CHECK ───────────────────────────────────────────────────────────
+    if (localStorage.getItem("loggedIn") !== "true") window.location.href = "login.html";
+
+    const user = localStorage.getItem("currentUser") || "Admin";
+    document.getElementById("greeting").textContent      = user;
+    document.getElementById("sidebarUser").textContent   = user;
+    document.getElementById("avatarInitial").textContent = user[0].toUpperCase();
+
+    const now = new Date();
+    document.getElementById("dateDisplay").textContent = now.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    // ─── LOAD DATA ────────────────────────────────────────────────────────────
+    let products = [];
+    let invoices = [];
+    let khata    = [];
+
+    async function fetchAllData() {
+        const [p, inv, k] = await Promise.all([
+            fetch('/api/products').then(r => r.json()),
+            fetch('/api/invoices').then(r => r.json()),
+            fetch('/api/khata').then(r => r.json())
+        ]);
+        products = p || [];
+        invoices = inv || [];
+        khata    = k || [];
+    }
+
+    // ─── STATS ────────────────────────────────────────────────────────────────
+    function countUp(el, target) {
+        let start = 0;
+        const step = Math.ceil(target / 30);
+        const timer = setInterval(() => {
+            start = Math.min(start + step, target);
+            el.textContent = start.toLocaleString('en-IN');
+            if (start >= target) clearInterval(timer);
+        }, 30);
+    }
+
+    function loadStats() {
+        const totalProducts = products.length;
+        const totalStock    = products.reduce((s, p) => s + parseInt(p.stock || 0), 0);
+        const totalInvoices = invoices.length;
+        const lowStock      = products.filter(p => parseInt(p.stock) < 5).length;
+
+        countUp(document.getElementById("val-products"), totalProducts);
+        countUp(document.getElementById("val-stock"),    totalStock);
+        countUp(document.getElementById("val-invoices"), totalInvoices);
+        countUp(document.getElementById("val-low"),      lowStock);
+
+        document.getElementById("chg-products").textContent = totalProducts + " total";
+        document.getElementById("chg-stock").textContent    = totalStock + " units";
+        document.getElementById("chg-invoices").textContent = totalInvoices + " bills";
+        document.getElementById("chg-low").textContent      = lowStock + " items";
+
+        document.getElementById("chg-low").className =
+            lowStock > 0 ? "stat-change down" : "stat-change up";
+    }
+
+    // ─── BAR CHART ────────────────────────────────────────────────────────────
+    let stockChartInstance = null;
+    function loadStockChart() {
+        const ctx    = document.getElementById("stockChart").getContext("2d");
+        const labels = products.length ? products.map(p => p.name.length > 12 ? p.name.slice(0,12)+"…" : p.name) : ["No products"];
+        const data   = products.length ? products.map(p => parseInt(p.stock)) : [0];
+        const colors = data.map(v => v < 5 ? "rgba(248,113,113,0.85)" : v < 20 ? "rgba(251,191,36,0.85)" : "rgba(74,222,128,0.85)");
+
+        if (stockChartInstance) stockChartInstance.destroy();
+        stockChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 6, borderSkipped: false }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "#181b22", borderColor: "#252a38", borderWidth: 1,
+                        titleColor: "#8892a4", bodyColor: "#f0f2f5",
+                        titleFont: { family:"'DM Mono',monospace", size:10 },
+                        bodyFont:  { family:"'Syne',sans-serif",   size:13 },
+                        callbacks: { label: ctx => " Stock: " + ctx.raw + " units" }
+                    }
+                },
+                scales: {
+                    x: { grid:{ color:"rgba(255,255,255,0.03)" }, ticks:{ color:"#4a5568", font:{ family:"'DM Mono',monospace", size:9 } }, border:{ color:"#1e222d" } },
+                    y: { grid:{ color:"rgba(255,255,255,0.04)" }, ticks:{ color:"#4a5568", font:{ family:"'DM Mono',monospace", size:9 } }, border:{ color:"#1e222d" } }
+                }
+            }
+        });
+    }
+
+    // ─── DONUT CHART ──────────────────────────────────────────────────────────
+    let healthChartInstance = null;
+    function loadHealthChart() {
+        const ctx    = document.getElementById("healthChart").getContext("2d");
+        const low    = products.filter(p => parseInt(p.stock) < 5).length;
+        const medium = products.filter(p => parseInt(p.stock) >= 5 && parseInt(p.stock) < 20).length;
+        const high   = products.filter(p => parseInt(p.stock) >= 20).length;
+        const empty  = products.length === 0;
+
+        if (healthChartInstance) healthChartInstance.destroy();
+        healthChartInstance = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: empty ? ["No data"] : ["Healthy (≥20)", "Medium (5–19)", "Low (<5)"],
+                datasets: [{
+                    data: empty ? [1] : [high || 0.01, medium || 0.01, low || 0.01],
+                    backgroundColor: empty
+                        ? ["#1e222d"]
+                        : ["rgba(74,222,128,0.85)", "rgba(251,191,36,0.85)", "rgba(248,113,113,0.85)"],
+                    borderWidth: 0, hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: "68%",
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: { color:"#8892a4", font:{ family:"'DM Mono',monospace", size:10 }, boxWidth:8, padding:14 }
+                    },
+                    tooltip: {
+                        backgroundColor:"#181b22", borderColor:"#252a38", borderWidth:1,
+                        titleColor:"#8892a4", bodyColor:"#f0f2f5",
+                        titleFont:{ family:"'DM Mono',monospace", size:10 },
+                        bodyFont: { family:"'Syne',sans-serif",   size:13 }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─── LOW STOCK TABLE ──────────────────────────────────────────────────────
+    function loadLowStock() {
+        const low   = products.filter(p => parseInt(p.stock) < 20).sort((a,b) => a.stock - b.stock);
+        const tbody = document.getElementById("lowStockBody");
+        document.getElementById("lowCount").textContent = low.length + " items";
+
+        if (!low.length) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:28px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">✓ All products well stocked</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = low.slice(0, 6).map(p => {
+            const s = parseInt(p.stock);
+            const badge = s < 5
+                ? `<span class="badge low">● Critical</span>`
+                : `<span class="badge med">● Medium</span>`;
+            return `
+                <tr>
+                    <td class="td-name">${p.name}</td>
+                    <td class="td-mono">₹${parseFloat(p.price).toLocaleString('en-IN')}</td>
+                    <td class="td-green">${p.stock}</td>
+                    <td>${badge}</td>
+                </tr>`;
+        }).join('');
+    }
+
+    // ─── ACTIVITY FEED ────────────────────────────────────────────────────────
+    function loadActivity() {
+        const feed   = document.getElementById("activityFeed");
+        const events = [];
+
+        products.slice(-4).reverse().forEach(p => {
+            events.push({ color:"green", text:`Product <strong>${p.name}</strong> added to inventory`, time:"recently" });
+        });
+
+        invoices.slice(-3).reverse().forEach((inv, i) => {
+            events.push({ color:"blue", text:`Invoice #${String(invoices.length - i).padStart(4,"0")} generated`, time:"today" });
+        });
+
+        products.filter(p => parseInt(p.stock) < 5).slice(0, 2).forEach(p => {
+            events.push({ color:"red", text:`Low stock alert: <strong>${p.name}</strong> has only ${p.stock} units`, time:"now" });
+        });
+
+        if (!events.length) {
+            feed.innerHTML = `<div class="activity-item"><div class="activity-dot blue"></div><div class="activity-text">No activity yet — add products to get started</div></div>`;
+            return;
+        }
+
+        feed.innerHTML = events.slice(0, 6).map(e => `
+            <div class="activity-item">
+                <div class="activity-dot ${e.color}"></div>
+                <div class="activity-text">${e.text}</div>
+                <div class="activity-time">${e.time}</div>
+            </div>`).join('');
+    }
+
+    // ─── REFRESH ──────────────────────────────────────────────────────────────
+    async function refreshData() {
+        await fetchAllData();
+        loadStats();
+        loadStockChart();
+        loadHealthChart();
+        loadLowStock();
+        loadActivity();
+    }
+
+    refreshData();
+
+    // ─── LOGOUT ───────────────────────────────────────────────────────────────
+    function logout() {
+        localStorage.setItem("loggedIn", "false");
+        localStorage.removeItem("currentUser");
+        window.location.href = "login.html";
+    }
+</script>
+</body>
+</html>
