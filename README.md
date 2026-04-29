@@ -10,7 +10,7 @@ Azure: Live Link/FQDN: cloudinv.gmdzc3duhgg3fufq.centralindia.azurecontainer.io
 
 Docker Hub Image Link: https://hub.docker.com/r/aditya65/cloudinv
 
-Its Dynamic Website , not a Static website that has been dockerized and deployed
+Its a Dynamic Website with proper working frontend and backend, that has been dockerized and deployed
 
 
 
